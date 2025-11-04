@@ -1,4 +1,32 @@
-# CodGuard for WooCommerce - Version 2.1.1
+# CodGuard for WooCommerce - Version 2.1.2
+
+## [2.1.2] - 2025-11-04
+
+### Added
+- **Complete Customer Rating Check System** - Silent verification at checkout
+- Customer rating validation during checkout process (hooks into WooCommerce checkout)
+- Automatic COD blocking for low-rated customers
+- Seamless integration - no modal, no popups, works with standard checkout flow
+
+### Features Now Complete
+✅ **Admin Settings Page** - Configure API keys, tolerance, COD methods, order statuses
+✅ **Customer Rating Check** - Silent API check when customer submits order with COD
+✅ **Daily Order Sync** - Uploads yesterday's orders to CodGuard API at 2 AM
+
+### How It Works
+1. Customer fills billing email in normal checkout form
+2. Customer selects COD payment method
+3. When "Place Order" is clicked, rating is checked automatically
+4. If rating < tolerance: Error message shown, order blocked
+5. If rating OK: Order proceeds normally
+
+### Technical Details
+- Added `class-checkout-validator.php` for checkout validation
+- Hooks into `woocommerce_checkout_process` and `woocommerce_after_checkout_validation`
+- Integration with CodGuard Customer Rating API endpoint
+- Fail-open approach: API errors allow order to proceed (customer-friendly)
+
+---
 
 ## [2.1.1] - 2025-11-04
 

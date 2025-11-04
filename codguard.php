@@ -3,7 +3,7 @@
  * Plugin Name: CodGuard for WooCommerce
  * Plugin URI: https://codguard.com
  * Description: Integrates with the CodGuard API to manage cash-on-delivery payment options based on customer ratings and synchronize order data.
- * Version: 2.1.1
+ * Version: 2.1.2
  * Author: CodGuard
  * Author URI: https://codguard.com
  * Text Domain: codguard
@@ -22,7 +22,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('CODGUARD_VERSION', '2.1.1');
+define('CODGUARD_VERSION', '2.1.2');
 define('CODGUARD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CODGUARD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CODGUARD_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -99,13 +99,20 @@ function codguard_init() {
         CodGuard_Admin_Settings::init();
     }
 
+    // Load customer rating check validator
+    require_once CODGUARD_PLUGIN_DIR . 'includes/class-checkout-validator.php';
+
     // Initialize order sync if plugin is enabled
     if (function_exists('codguard_is_enabled') && codguard_is_enabled()) {
         $order_sync = new CodGuard_Order_Sync();
-        
+
         // Schedule sync if not already scheduled
         add_action('init', array($order_sync, 'maybe_schedule_sync'));
     }
+
+    // Register custom order statuses
+    add_action('init', 'codguard_register_custom_order_statuses');
+    add_filter('wc_order_statuses', 'codguard_add_custom_order_statuses');
 }
 add_action('plugins_loaded', 'codguard_init');
 
@@ -173,6 +180,59 @@ add_action('before_woocommerce_init', function() {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
     }
 });
+
+/**
+ * Initialize customer rating check validator
+ */
+function codguard_init_rating_check() {
+    // Initialize checkout validator (validates during checkout process)
+    if (class_exists('CodGuard_Checkout_Validator')) {
+        new CodGuard_Checkout_Validator();
+    }
+}
+add_action('init', 'codguard_init_rating_check', 5);
+
+/**
+ * Register custom order statuses with WordPress
+ */
+function codguard_register_custom_order_statuses() {
+    $custom_statuses = get_option('codguard_custom_statuses', array());
+
+    if (empty($custom_statuses)) {
+        return;
+    }
+
+    foreach ($custom_statuses as $slug => $label) {
+        register_post_status('wc-' . $slug, array(
+            'label' => $label,
+            'public' => true,
+            'exclude_from_search' => false,
+            'show_in_admin_all_list' => true,
+            'show_in_admin_status_list' => true,
+            'label_count' => _n_noop($label . ' <span class="count">(%s)</span>', $label . ' <span class="count">(%s)</span>', 'codguard')
+        ));
+    }
+}
+
+/**
+ * Add custom order statuses to WooCommerce
+ *
+ * @param array $order_statuses Existing order statuses
+ * @return array Modified order statuses
+ */
+function codguard_add_custom_order_statuses($order_statuses) {
+    $custom_statuses = get_option('codguard_custom_statuses', array());
+
+    if (empty($custom_statuses)) {
+        return $order_statuses;
+    }
+
+    foreach ($custom_statuses as $slug => $label) {
+        $order_statuses['wc-' . $slug] = $label;
+    }
+
+    return $order_statuses;
+}
 
 /**
  * Add action links to plugin page

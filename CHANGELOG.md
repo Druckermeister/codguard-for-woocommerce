@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.2] - 2025-11-04
+
+### Added
+- **Customer Rating Check System** - Complete implementation of checkout validation
+- Silent rating verification during checkout process
+- Automatic COD blocking for customers with low ratings
+- Integration with CodGuard Customer Rating API (`/api/customer-rating/{shop_id}/{email}`)
+
+### How It Works
+- Customer fills billing email in standard checkout form
+- When customer selects COD payment and clicks "Place Order", rating is checked
+- If rating < configured tolerance: Error message shown, order blocked
+- If rating OK or API error: Order proceeds (fail-open approach)
+- Only checks rating when COD payment methods are selected
+
+### Technical Details
+- Added `class-checkout-validator.php` for checkout validation
+- Hooks into `woocommerce_checkout_process` and `woocommerce_after_checkout_validation`
+- Checks payment method against configured COD methods list
+- API call only happens for COD payment methods
+- Fail-open: API errors allow order to proceed (customer-friendly)
+- No modals, no popups - seamless integration with WooCommerce
+
+### Note
+- This completes all three phases: Admin Panel, Customer Rating Check, and Daily Order Sync
+
+---
+
 ## [2.0.9] - 2025-11-03
 
 ### Changed

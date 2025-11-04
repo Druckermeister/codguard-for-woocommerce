@@ -1,5 +1,5 @@
 === CodGuard for WooCommerce ===
-Version: 2.1.1
+Version: 2.1.2
 Release Date: November 4, 2025
 
 == What's Included ==
@@ -9,6 +9,13 @@ Phase 1: Admin Panel & Configuration ✅
 - Order status mapping
 - Payment method selection
 - Rating tolerance settings
+
+Phase 2: Customer Rating Check ✅
+- Silent rating verification at checkout
+- Automatic COD blocking for low-rated customers
+- Seamless integration with standard checkout
+- No popups or modals - works invisibly
+- Fail-open fallback for API errors
 
 Phase 3: Daily Order Upload ✅
 - Automated sync at 02:00 daily
@@ -44,6 +51,6 @@ API Docs: https://codguard.com/docs
 
 == Files ==
 
-9 PHP files (fully functional)
+7 PHP files (fully functional)
 2 CSS/JS files (admin interface)
 README.txt (this file)
