@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.9] - 2025-11-06
+
+### Fixed
+- **Hidden File Removal**: Removed `.gitkeep` from languages directory
+  - WordPress plugin checker does not permit hidden files (files starting with dot)
+  - Replaced with `index.php` placeholder file
+  - Standard WordPress practice for empty directories
+
+### Technical Details
+- Deleted: `languages/.gitkeep`
+- Created: `languages/index.php` with "Silence is golden" comment
+- Maintains languages directory structure for i18n support
+
+---
+
 ## [2.1.8] - 2025-11-06
 
 ### Changed

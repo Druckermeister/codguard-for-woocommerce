@@ -4,10 +4,10 @@ Tags: woocommerce, payment, cod, cash on delivery, fraud prevention
 Requires at least: 5.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 2.1.8
+Stable tag: 2.1.9
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Version: 2.1.8
+Version: 2.1.9
 Release Date: November 6, 2025
 
 == What's Included ==
