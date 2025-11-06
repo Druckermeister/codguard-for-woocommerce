@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.5] - 2025-11-06
+
+### Fixed
+- Fixed i18n issue with `_n_noop()` using concatenated strings instead of literals
+- Replaced `_n_noop()` with manual array structure for dynamic custom status labels
+- Resolves WordPress.WP.I18n.NonSingularStringLiteralSingular and NonSingularStringLiteralPlural warnings
+
+### Technical Details
+- Changed `label_count` from `_n_noop()` call to array structure in codguard.php:212-216
+- Custom order statuses now use array with keys: 0 (singular), 1 (plural), 'domain'
+- Maintains functionality while complying with WordPress i18n standards
+
+---
+
 ## [2.1.4] - 2025-11-06
 
 ### Fixed
