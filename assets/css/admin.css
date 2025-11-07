@@ -203,6 +203,11 @@
     letter-spacing: 0.5px;
 }
 
+.codguard-sync-error {
+    margin-top: 8px;
+    color: #d63638;
+}
+
 .codguard-sync-status-item .value {
     font-size: 18px;
     font-weight: 600;

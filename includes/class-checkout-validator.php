@@ -100,11 +100,19 @@ class CodGuard_Checkout_Validator {
         
         $api_keys = codguard_get_api_keys();
         $url = 'https://api.codguard.com/api/customer-rating/' . urlencode($shop_id) . '/' . urlencode($email);
+        $email_hash = $this->get_email_hash($email);
         
         // Log the API call
         if (function_exists('wc_get_logger')) {
             $logger = wc_get_logger();
-            $logger->info('Calling CodGuard API: ' . $url, array('source' => 'codguard'));
+            $logger->info(
+                sprintf(
+                    'Calling CodGuard API for shop %s (customer hash: %s)',
+                    $shop_id,
+                    $email_hash ?: 'n/a'
+                ),
+                array('source' => 'codguard')
+            );
         }
         
         // Build headers with API keys
@@ -122,7 +130,14 @@ class CodGuard_Checkout_Validator {
         if (is_wp_error($response)) {
             if (function_exists('wc_get_logger')) {
                 $logger = wc_get_logger();
-                $logger->error('API Error: ' . $response->get_error_message(), array('source' => 'codguard'));
+                $logger->error(
+                    sprintf(
+                        'API Error for customer hash %s: %s',
+                        $email_hash ?: 'n/a',
+                        $response->get_error_message()
+                    ),
+                    array('source' => 'codguard')
+                );
             }
             return null; // Fail open
         }
@@ -133,7 +148,15 @@ class CodGuard_Checkout_Validator {
         // Log response
         if (function_exists('wc_get_logger')) {
             $logger = wc_get_logger();
-            $logger->info('API Response: Status=' . $status_code . ' Body=' . $body, array('source' => 'codguard'));
+            $logger->info(
+                sprintf(
+                    'API Response: Status=%d (body length %d) for customer hash %s',
+                    $status_code,
+                    strlen($body),
+                    $email_hash ?: 'n/a'
+                ),
+                array('source' => 'codguard')
+            );
         }
         
         // 404 = new customer, allow
@@ -154,5 +177,19 @@ class CodGuard_Checkout_Validator {
         }
         
         return (float) $data['rating'];
+    }
+
+    /**
+     * Get a short hash of an email address for safe logging.
+     *
+     * @param string $email Email address.
+     * @return string
+     */
+    private function get_email_hash($email) {
+        if (empty($email)) {
+            return '';
+        }
+
+        return substr(hash('sha256', strtolower($email)), 0, 12);
     }
 }

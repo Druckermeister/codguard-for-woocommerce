@@ -21,6 +21,41 @@ class CodGuard_Order_Sync {
     const CRON_HOOK = 'codguard_daily_order_sync';
 
     /**
+     * Default orders processed per batch.
+     */
+    const BATCH_SIZE = 100;
+
+    /**
+     * Get batch size with filter support.
+     *
+     * @return int
+     */
+    private function get_batch_size() {
+        $batch_size = (int) apply_filters('codguard_order_sync_batch_size', self::BATCH_SIZE);
+        return $batch_size > 0 ? $batch_size : self::BATCH_SIZE;
+    }
+
+    /**
+     * Get the site timezone with a safe fallback.
+     *
+     * @return DateTimeZone
+     */
+    private function get_site_timezone() {
+        $timezone_string = function_exists('wp_timezone_string') ? wp_timezone_string() : '';
+
+        if (empty($timezone_string)) {
+            $offset = (float) get_option('gmt_offset', 0);
+            $timezone_string = timezone_name_from_abbr('', (int) ($offset * HOUR_IN_SECONDS), 0);
+        }
+
+        if (empty($timezone_string)) {
+            $timezone_string = 'UTC';
+        }
+
+        return new DateTimeZone($timezone_string);
+    }
+
+    /**
      * Initialize order sync functionality
      */
     public function __construct() {
@@ -107,8 +142,7 @@ class CodGuard_Order_Sync {
      */
     private function calculate_next_sync_time() {
         // Get WordPress timezone
-        $timezone_string = wp_timezone_string();
-        $timezone = new DateTimeZone($timezone_string);
+        $timezone = $this->get_site_timezone();
         
         // Current time in site's timezone
         $now = new DateTime('now', $timezone);
@@ -139,49 +173,107 @@ class CodGuard_Order_Sync {
         // Update last sync attempt time
         update_option('codguard_last_sync_attempt', current_time('mysql'));
 
-        // Get orders from previous day
-        $orders = $this->get_orders_from_yesterday();
+        $batch_size = $this->get_batch_size();
+        $page       = 1;
+        $total_orders = 0;
+        $total_synced = 0;
+        $found_orders = false;
 
-        if (empty($orders)) {
-            codguard_log('No orders found for yesterday', 'info');
+        while (true) {
+            $orders = $this->get_orders_from_yesterday($page, $batch_size);
+
+            if (empty($orders)) {
+                if (1 === $page) {
+                    codguard_log('No orders found for yesterday', 'info');
+                }
+                break;
+            }
+
+            $found_orders = true;
+            $total_orders += count($orders);
+            codguard_log(sprintf('Processing batch %d containing %d orders', $page, count($orders)), 'debug');
+
+            $order_data = $this->prepare_order_data($orders);
+            $has_more   = count($orders) === $batch_size;
+
+            if (empty($order_data)) {
+                codguard_log(sprintf('Batch %d contained no valid orders after filtering', $page), 'debug');
+                if (!$has_more) {
+                    break;
+                }
+                $page++;
+                continue;
+            }
+
+            $result = $this->send_to_api($order_data);
+
+            if (is_wp_error($result)) {
+                $error_message = $result->get_error_message();
+                update_option('codguard_last_sync', current_time('mysql'));
+                update_option('codguard_last_sync_status', 'failed');
+                update_option('codguard_last_sync_error', $error_message);
+                codguard_log('Order sync failed: ' . $error_message, 'error');
+                return;
+            }
+
+            $total_synced += count($order_data);
+
+            if (!$has_more) {
+                break;
+            }
+
+            $page++;
+        }
+
+        if (!$found_orders) {
             update_option('codguard_last_sync', current_time('mysql'));
             update_option('codguard_last_sync_status', 'success');
             update_option('codguard_last_sync_count', 0);
+            delete_option('codguard_last_sync_error');
             return;
         }
 
-        codguard_log(sprintf('Found %d orders to sync', count($orders)), 'info');
-
-        // Prepare order data for API
-        $order_data = $this->prepare_order_data($orders);
-
-        if (empty($order_data)) {
-            codguard_log('No valid orders to sync after filtering', 'info');
+        if (0 === $total_synced) {
+            codguard_log('No valid orders to sync after filtering all batches', 'info');
             update_option('codguard_last_sync', current_time('mysql'));
             update_option('codguard_last_sync_status', 'success');
             update_option('codguard_last_sync_count', 0);
+            delete_option('codguard_last_sync_error');
             return;
         }
+
+        update_option('codguard_last_sync', current_time('mysql'));
+        update_option('codguard_last_sync_status', 'success');
+        update_option('codguard_last_sync_count', $total_synced);
+        delete_option('codguard_last_sync_error');
+
+        codguard_log(sprintf('Successfully synced %d orders across %d batches', $total_synced, $page), 'info');
     }
 
     /**
-     * Get orders from yesterday based on last modified date
-     * This ensures we catch orders that were updated/completed yesterday
+     * Get orders from yesterday based on last modified date.
+     * This ensures we catch orders that were updated/completed yesterday.
      *
-     * @return array Array of WC_Order objects
+     * @param int $page  Page number for pagination.
+     * @param int $limit Orders per page.
+     *
+     * @return array Array of WC_Order objects.
      */
-    private function get_orders_from_yesterday() {
+    private function get_orders_from_yesterday($page = 1, $limit = null) {
         // Get timezone
-        $timezone_string = wp_timezone_string();
-        $timezone = new DateTimeZone($timezone_string);
+        $timezone = $this->get_site_timezone();
         
         // Yesterday's date range
         $yesterday_start = new DateTime('yesterday 00:00:00', $timezone);
         $yesterday_end = new DateTime('yesterday 23:59:59', $timezone);
 
+        $limit = $limit ?: $this->get_batch_size();
+        $page  = max(1, (int) $page);
+
         // Query orders modified yesterday (not created)
         $args = array(
-            'limit'         => -1,
+            'limit'         => $limit,
+            'page'          => $page,
             'date_modified' => $yesterday_start->getTimestamp() . '...' . $yesterday_end->getTimestamp(),
             'return'        => 'objects',
         );
@@ -190,12 +282,14 @@ class CodGuard_Order_Sync {
         $orders = wc_get_orders($args);
 
         codguard_log(sprintf(
-            'Querying orders MODIFIED from %s to %s',
+            'Querying orders MODIFIED from %s to %s (page %d, limit %d)',
             $yesterday_start->format('Y-m-d H:i:s'),
-            $yesterday_end->format('Y-m-d H:i:s')
+            $yesterday_end->format('Y-m-d H:i:s'),
+            $page,
+            $limit
         ), 'debug');
 
-        codguard_log(sprintf('Found %d orders modified yesterday', count($orders)), 'debug');
+        codguard_log(sprintf('Retrieved %d orders for batch %d', count($orders), $page), 'debug');
 
         return $orders;
     }
@@ -257,7 +351,7 @@ class CodGuard_Order_Sync {
 
             // Add to order data
             $order_data[] = array(
-                'eshop_id'     => (int) $shop_id,
+                'eshop_id'     => (string) $shop_id,
                 'email'        => $billing_email,
                 'code'         => $order->get_order_number(),
                 'status'       => $order_status,
@@ -269,17 +363,16 @@ class CodGuard_Order_Sync {
             );
 
             codguard_log(sprintf(
-                'Order #%d added: Status=%s, Payment=%s, Email=%s, Outcome=%s',
+                'Order #%d prepared for sync. Status=%s, Payment=%s, Outcome=%s',
                 $order->get_id(),
                 $order_status,
-                $payment_method,
-                $billing_email,
+                $payment_method ?: 'n/a',
                 $outcome
             ), 'debug');
         }
 
         codguard_log(sprintf(
-            'Prepared %d orders for upload (refused=%d, successful=%d)',
+            'Prepared %d orders for upload (refused=%s, successful=%s)',
             count($order_data),
             $refused_status,
             $successful_status
@@ -343,7 +436,7 @@ class CodGuard_Order_Sync {
         $status_code = wp_remote_retrieve_response_code($response);
         $response_body = wp_remote_retrieve_body($response);
 
-        codguard_log(sprintf('API Response: Status %d, Body: %s', $status_code, $response_body), 'debug');
+        codguard_log(sprintf('API Response: Status %d (body length %d)', $status_code, strlen($response_body)), 'debug');
 
         // Check status code
         if ($status_code !== 200 && $status_code !== 201) {
@@ -381,10 +474,53 @@ class CodGuard_Order_Sync {
             ));
         }
 
-        // Get orders from yesterday
-        $orders = $this->get_orders_from_yesterday();
-        
-        if (empty($orders)) {
+        $batch_size = $this->get_batch_size();
+        $page       = 1;
+        $total_synced = 0;
+        $found_orders = false;
+
+        while (true) {
+            $orders = $this->get_orders_from_yesterday($page, $batch_size);
+
+            if (empty($orders)) {
+                break;
+            }
+
+            $found_orders = true;
+            $order_data = $this->prepare_order_data($orders);
+            $has_more   = count($orders) === $batch_size;
+
+            if (empty($order_data)) {
+                if (!$has_more) {
+                    break;
+                }
+                $page++;
+                continue;
+            }
+
+            $result = $this->send_to_api($order_data);
+
+            if (is_wp_error($result)) {
+                // Update sync status
+                update_option('codguard_last_sync_status', 'failed');
+                update_option('codguard_last_sync_error', $result->get_error_message());
+                
+                wp_send_json_error(array(
+                    'message' => $result->get_error_message()
+                ));
+                return;
+            }
+
+            $total_synced += count($order_data);
+
+            if (!$has_more) {
+                break;
+            }
+
+            $page++;
+        }
+
+        if (!$found_orders) {
             wp_send_json_success(array(
                 'message' => __('No orders found for yesterday.', 'codguard'),
                 'count' => 0
@@ -392,26 +528,10 @@ class CodGuard_Order_Sync {
             return;
         }
 
-        // Prepare and send
-        $order_data = $this->prepare_order_data($orders);
-        
-        if (empty($order_data)) {
+        if (0 === $total_synced) {
             wp_send_json_success(array(
-                'message' => __('No valid orders found for yesterday (missing email addresses).', 'codguard'),
+                'message' => __('No valid orders found for yesterday (missing email addresses or status mismatch).', 'codguard'),
                 'count' => 0
-            ));
-            return;
-        }
-
-        $result = $this->send_to_api($order_data);
-
-        if (is_wp_error($result)) {
-            // Update sync status
-            update_option('codguard_last_sync_status', 'failed');
-            update_option('codguard_last_sync_error', $result->get_error_message());
-            
-            wp_send_json_error(array(
-                'message' => $result->get_error_message()
             ));
             return;
         }
@@ -419,13 +539,13 @@ class CodGuard_Order_Sync {
         // Update sync status
         update_option('codguard_last_sync', current_time('mysql'));
         update_option('codguard_last_sync_status', 'success');
-        update_option('codguard_last_sync_count', count($order_data));
+        update_option('codguard_last_sync_count', $total_synced);
         delete_option('codguard_last_sync_error');
 
         wp_send_json_success(array(
             /* translators: %d: number of orders synced */
-            'message' => sprintf(__('%d orders synced successfully. Refused status = -1, others = 1.', 'codguard'), count($order_data)),
-            'count' => count($order_data)
+            'message' => sprintf(__('%d orders synced successfully. Refused status = -1, others = 1.', 'codguard'), $total_synced),
+            'count' => $total_synced
         ));
     }
 

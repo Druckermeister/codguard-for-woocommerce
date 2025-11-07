@@ -118,8 +118,10 @@ class CodGuard_Admin_Settings {
             wp_die(esc_html__('You do not have sufficient permissions to perform this action.', 'codguard'));
         }
 
+        $current_settings = CodGuard_Settings_Manager::get_settings();
+
         // Sanitize settings
-        $settings = CodGuard_Settings_Manager::sanitize_settings($_POST);
+        $settings = CodGuard_Settings_Manager::sanitize_settings($_POST, $current_settings);
 
         // Validate settings
         $errors = CodGuard_Settings_Manager::validate_settings($settings);
@@ -161,8 +163,12 @@ class CodGuard_Admin_Settings {
      */
     public static function admin_notices() {
         // Only show on our settings page
+        if (!function_exists('get_current_screen')) {
+            return;
+        }
+
         $screen = get_current_screen();
-        if ($screen->id !== 'woocommerce_page_codguard-settings') {
+        if (!$screen || $screen->id !== 'woocommerce_page_codguard-settings') {
             return;
         }
 

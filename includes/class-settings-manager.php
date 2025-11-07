@@ -200,22 +200,38 @@ class CodGuard_Settings_Manager {
     /**
      * Sanitize settings
      *
-     * @param array $raw_settings Raw settings from form
+     * @param array $raw_settings      Raw settings from form (typically $_POST)
+     * @param array $existing_settings Currently stored settings, used for fallbacks.
      * @return array Sanitized settings
      */
-    public static function sanitize_settings($raw_settings) {
+    public static function sanitize_settings($raw_settings, $existing_settings = array()) {
+        $defaults = self::get_default_settings();
+        $existing_settings = wp_parse_args((array) $existing_settings, $defaults);
+
+        $raw_settings = is_array($raw_settings) ? wp_unslash($raw_settings) : array();
+        $parsed_settings = wp_parse_args($raw_settings, $defaults);
+
+        $cod_methods = array();
+        if (isset($parsed_settings['cod_methods']) && is_array($parsed_settings['cod_methods'])) {
+            $cod_methods = array_filter(array_map('sanitize_text_field', $parsed_settings['cod_methods']));
+            $cod_methods = array_values(array_unique($cod_methods));
+        }
+
+        $private_key = sanitize_text_field($parsed_settings['private_key']);
+        if ('' === $private_key) {
+            $private_key = $existing_settings['private_key'];
+        }
+
         return array(
-            'shop_id' => sanitize_text_field($raw_settings['shop_id']),
-            'public_key' => sanitize_text_field($raw_settings['public_key']),
-            'private_key' => sanitize_text_field($raw_settings['private_key']),
-            'good_status' => sanitize_text_field($raw_settings['good_status']),
-            'refused_status' => sanitize_text_field($raw_settings['refused_status']),
-            'cod_methods' => isset($raw_settings['cod_methods']) && is_array($raw_settings['cod_methods']) 
-                ? array_map('sanitize_text_field', $raw_settings['cod_methods']) 
-                : array(),
-            'rating_tolerance' => max(0, min(100, intval($raw_settings['rating_tolerance']))),
-            'rejection_message' => sanitize_textarea_field($raw_settings['rejection_message']),
-            'notification_email' => sanitize_email($raw_settings['notification_email'])
+            'shop_id' => sanitize_text_field($parsed_settings['shop_id']),
+            'public_key' => sanitize_text_field($parsed_settings['public_key']),
+            'private_key' => $private_key,
+            'good_status' => sanitize_text_field($parsed_settings['good_status']),
+            'refused_status' => sanitize_text_field($parsed_settings['refused_status']),
+            'cod_methods' => $cod_methods,
+            'rating_tolerance' => max(0, min(100, (int) $parsed_settings['rating_tolerance'])),
+            'rejection_message' => sanitize_textarea_field($parsed_settings['rejection_message']),
+            'notification_email' => sanitize_email($parsed_settings['notification_email'])
         );
     }
 }

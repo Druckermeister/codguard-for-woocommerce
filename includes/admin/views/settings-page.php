@@ -106,9 +106,9 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
                                     type="password" 
                                     name="private_key" 
                                     id="private_key" 
-                                    value="<?php echo esc_attr($settings['private_key']); ?>" 
                                     class="regular-text" 
                                     placeholder="<?php esc_attr_e('••••••••••••••••', 'codguard'); ?>"
+                                    autocomplete="new-password"
                                     minlength="10"
                                 >
                                 <p class="description">
@@ -121,6 +121,7 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
                                     id="private_key" 
                                     value="" 
                                     class="regular-text" 
+                                    autocomplete="new-password"
                                     required
                                     minlength="10"
                                 >
@@ -321,9 +322,12 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
         // Get sync status
         $is_scheduled = CodGuard_Order_Sync::is_scheduled();
         $next_sync = CodGuard_Order_Sync::get_next_sync_time();
-        $last_sync = get_option('codguard_last_sync_time', false);
-        $last_sync_status = get_option('codguard_last_sync_status', 'unknown');
-        $last_sync_count = get_option('codguard_last_sync_count', 0);
+        $last_sync_raw = get_option('codguard_last_sync', false);
+        $last_sync_timestamp = $last_sync_raw ? strtotime($last_sync_raw) : false;
+        $last_sync_display = CodGuard_Order_Sync::get_last_sync_time();
+        $last_sync_status = CodGuard_Order_Sync::get_last_sync_status();
+        $last_sync_count = CodGuard_Order_Sync::get_last_sync_count();
+        $last_sync_error = get_option('codguard_last_sync_error');
         ?>
 
         <!-- Sync Status Grid -->
@@ -349,7 +353,7 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
             <!-- Next Sync Time -->
             <div class="codguard-sync-status-item">
                 <h4><?php esc_html_e('Next Scheduled Sync', 'codguard'); ?></h4>
-                <div class="value <?php echo $is_scheduled ? 'success' : 'pending'; ?>">
+                <div class="value <?php echo esc_attr($is_scheduled ? 'success' : 'pending'); ?>">
                     <?php
                     if ($next_sync) {
                         echo esc_html($next_sync);
@@ -364,12 +368,16 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
             <div class="codguard-sync-status-item">
                 <h4><?php esc_html_e('Last Sync', 'codguard'); ?></h4>
                 <div class="value">
-                    <?php if ($last_sync) : ?>
+                    <?php if ($last_sync_timestamp) : ?>
                         <span id="codguard-last-sync">
-                            <?php echo esc_html(human_time_diff($last_sync, current_time('timestamp')) . ' ' . __('ago', 'codguard')); ?>
+                            <?php echo esc_html(human_time_diff($last_sync_timestamp, current_time('timestamp')) . ' ' . __('ago', 'codguard')); ?>
                         </span>
                         <br>
-                        <span class="codguard-sync-badge <?php echo $last_sync_status === 'success' ? 'success' : 'error'; ?>">
+                        <?php if ($last_sync_display) : ?>
+                            <small><?php echo esc_html($last_sync_display); ?></small>
+                            <br>
+                        <?php endif; ?>
+                        <span class="codguard-sync-badge <?php echo esc_attr($last_sync_status === 'success' ? 'success' : 'error'); ?>">
                             <?php
                             if ($last_sync_status === 'success') {
                                 /* translators: %d: number of orders synced */
@@ -379,6 +387,11 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
                             }
                             ?>
                         </span>
+                        <?php if ('failed' === $last_sync_status && !empty($last_sync_error)) : ?>
+                            <p class="codguard-sync-error">
+                                <?php printf(esc_html__('Last error: %s', 'codguard'), esc_html($last_sync_error)); ?>
+                            </p>
+                        <?php endif; ?>
                     <?php else : ?>
                         <span class="codguard-sync-badge pending">
                             <?php esc_html_e('Never run', 'codguard'); ?>
