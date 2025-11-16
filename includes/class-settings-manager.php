@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Settings Manager Class
  * Handles all CRUD operations for CodGuard settings
@@ -9,8 +10,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class CodGuard_Settings_Manager {
-
+class CodGuard_Settings_Manager
+{
     /**
      * Option name in wp_options table
      */
@@ -21,7 +22,8 @@ class CodGuard_Settings_Manager {
      *
      * @return array Default settings array
      */
-    public static function get_default_settings() {
+    public static function get_default_settings()
+    {
         return array(
             'shop_id' => '',
             'public_key' => '',
@@ -41,10 +43,11 @@ class CodGuard_Settings_Manager {
      *
      * @return array Settings array with defaults merged
      */
-    public static function get_settings() {
+    public static function get_settings()
+    {
         $defaults = self::get_default_settings();
         $settings = get_option(self::OPTION_NAME, $defaults);
-        
+
         // Ensure all default keys exist
         return wp_parse_args($settings, $defaults);
     }
@@ -55,19 +58,22 @@ class CodGuard_Settings_Manager {
      * @param array $new_settings New settings to save
      * @return bool True on success, false on failure
      */
-    public static function update_settings($new_settings) {
+    public static function update_settings($new_settings)
+    {
         $current = self::get_settings();
         $updated = array_merge($current, $new_settings);
-        
+
         // Auto-enable if all required API credentials are provided
-        if (!empty($updated['shop_id']) && 
-            !empty($updated['public_key']) && 
-            !empty($updated['private_key'])) {
+        if (
+            !empty($updated['shop_id']) &&
+            !empty($updated['public_key']) &&
+            !empty($updated['private_key'])
+        ) {
             $updated['enabled'] = true;
         } else {
             $updated['enabled'] = false;
         }
-        
+
         return update_option(self::OPTION_NAME, $updated);
     }
 
@@ -76,7 +82,8 @@ class CodGuard_Settings_Manager {
      *
      * @return string Shop ID
      */
-    public static function get_shop_id() {
+    public static function get_shop_id()
+    {
         $settings = self::get_settings();
         return $settings['shop_id'];
     }
@@ -86,7 +93,8 @@ class CodGuard_Settings_Manager {
      *
      * @return array Array with 'public' and 'private' keys
      */
-    public static function get_api_keys() {
+    public static function get_api_keys()
+    {
         $settings = self::get_settings();
         return array(
             'public' => $settings['public_key'],
@@ -99,7 +107,8 @@ class CodGuard_Settings_Manager {
      *
      * @return int Rating tolerance (0-100)
      */
-    public static function get_tolerance() {
+    public static function get_tolerance()
+    {
         $settings = self::get_settings();
         return (int) $settings['rating_tolerance'];
     }
@@ -109,7 +118,8 @@ class CodGuard_Settings_Manager {
      *
      * @return array Array of payment gateway IDs
      */
-    public static function get_cod_methods() {
+    public static function get_cod_methods()
+    {
         $settings = self::get_settings();
         return is_array($settings['cod_methods']) ? $settings['cod_methods'] : array();
     }
@@ -119,7 +129,8 @@ class CodGuard_Settings_Manager {
      *
      * @return array Array with 'good' and 'refused' status slugs
      */
-    public static function get_status_mappings() {
+    public static function get_status_mappings()
+    {
         $settings = self::get_settings();
         return array(
             'good' => $settings['good_status'],
@@ -132,7 +143,8 @@ class CodGuard_Settings_Manager {
      *
      * @return string Rejection message
      */
-    public static function get_rejection_message() {
+    public static function get_rejection_message()
+    {
         $settings = self::get_settings();
         return $settings['rejection_message'];
     }
@@ -142,7 +154,8 @@ class CodGuard_Settings_Manager {
      *
      * @return bool True if enabled, false otherwise
      */
-    public static function is_enabled() {
+    public static function is_enabled()
+    {
         $settings = self::get_settings();
         return (bool) $settings['enabled'];
     }
@@ -153,7 +166,8 @@ class CodGuard_Settings_Manager {
      * @param array $settings Settings to validate
      * @return array Array of error messages (empty if valid)
      */
-    public static function validate_settings($settings) {
+    public static function validate_settings($settings)
+    {
         $errors = array();
 
         // Shop ID validation
@@ -176,9 +190,11 @@ class CodGuard_Settings_Manager {
         }
 
         // Rating tolerance validation
-        if (!is_numeric($settings['rating_tolerance']) || 
-            $settings['rating_tolerance'] < 0 || 
-            $settings['rating_tolerance'] > 100) {
+        if (
+            !is_numeric($settings['rating_tolerance']) ||
+            $settings['rating_tolerance'] < 0 ||
+            $settings['rating_tolerance'] > 100
+        ) {
             $errors[] = __('Rating Tolerance must be a number between 0 and 100.', 'codguard');
         }
 
@@ -203,15 +219,16 @@ class CodGuard_Settings_Manager {
      * @param array $raw_settings Raw settings from form
      * @return array Sanitized settings
      */
-    public static function sanitize_settings($raw_settings) {
+    public static function sanitize_settings($raw_settings)
+    {
         return array(
             'shop_id' => sanitize_text_field($raw_settings['shop_id']),
             'public_key' => sanitize_text_field($raw_settings['public_key']),
             'private_key' => sanitize_text_field($raw_settings['private_key']),
             'good_status' => sanitize_text_field($raw_settings['good_status']),
             'refused_status' => sanitize_text_field($raw_settings['refused_status']),
-            'cod_methods' => isset($raw_settings['cod_methods']) && is_array($raw_settings['cod_methods']) 
-                ? array_map('sanitize_text_field', $raw_settings['cod_methods']) 
+            'cod_methods' => isset($raw_settings['cod_methods']) && is_array($raw_settings['cod_methods'])
+                ? array_map('sanitize_text_field', $raw_settings['cod_methods'])
                 : array(),
             'rating_tolerance' => max(0, min(100, intval($raw_settings['rating_tolerance']))),
             'rejection_message' => sanitize_textarea_field($raw_settings['rejection_message']),

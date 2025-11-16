@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Order Sync Class
  * Handles real-time bundled order synchronization with CodGuard API
@@ -13,8 +14,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class CodGuard_Order_Sync {
-
+class CodGuard_Order_Sync
+{
     /**
      * Queue transient key
      */
@@ -33,7 +34,8 @@ class CodGuard_Order_Sync {
     /**
      * Initialize order sync functionality
      */
-    public function __construct() {
+    public function __construct()
+    {
         // Hook into WooCommerce order status changes
         add_action('woocommerce_order_status_changed', array($this, 'on_order_status_changed'), 10, 4);
 
@@ -50,7 +52,8 @@ class CodGuard_Order_Sync {
      * @param string $new_status New status
      * @param WC_Order $order Order object
      */
-    public function on_order_status_changed($order_id, $old_status, $new_status, $order) {
+    public function on_order_status_changed($order_id, $old_status, $new_status, $order)
+    {
         // Check if plugin is enabled
         if (!codguard_is_enabled()) {
             return;
@@ -90,7 +93,8 @@ class CodGuard_Order_Sync {
      *
      * @param WC_Order $order Order object
      */
-    private function add_to_queue($order) {
+    private function add_to_queue($order)
+    {
         // Get current queue
         $queue = get_transient(self::QUEUE_KEY);
         if ($queue === false) {
@@ -120,7 +124,8 @@ class CodGuard_Order_Sync {
     /**
      * Send bundled orders from queue
      */
-    public function send_bundled_orders() {
+    public function send_bundled_orders()
+    {
         // Get queue
         $queue = get_transient(self::QUEUE_KEY);
 
@@ -154,7 +159,8 @@ class CodGuard_Order_Sync {
      * @param WC_Order $order Order object
      * @return array|null Formatted order data or null if invalid
      */
-    private function prepare_single_order($order) {
+    private function prepare_single_order($order)
+    {
         $shop_id = codguard_get_shop_id();
         $status_mappings = codguard_get_status_mappings();
 
@@ -199,7 +205,8 @@ class CodGuard_Order_Sync {
      * @param WC_Order $order Order object
      * @return string Formatted address
      */
-    private function format_address($order) {
+    private function format_address($order)
+    {
         $address_parts = array_filter(array(
             $order->get_billing_address_1(),
             $order->get_billing_address_2(),
@@ -216,7 +223,8 @@ class CodGuard_Order_Sync {
      * @param array $order_data Prepared order data
      * @return array|WP_Error API response or error
      */
-    private function send_to_api($order_data) {
+    private function send_to_api($order_data)
+    {
         if (empty($order_data)) {
             return new WP_Error('no_orders', 'No orders to sync');
         }
@@ -267,5 +275,4 @@ class CodGuard_Order_Sync {
 
         return $data;
     }
-
 }

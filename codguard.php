@@ -1,9 +1,10 @@
 <?php
+
 /**
  * Plugin Name: CodGuard for WooCommerce
  * Plugin URI: https://codguard.com
  * Description: Integrates with the CodGuard API to manage cash-on-delivery payment options based on customer ratings and synchronize order data.
- * Version: 2.2.4
+ * Version: 2.2.5
  * Author: CodGuard
  * Author URI: https://codguard.com
  * Text Domain: codguard
@@ -22,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('CODGUARD_VERSION', '2.2.4');
+define('CODGUARD_VERSION', '2.2.5');
 define('CODGUARD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CODGUARD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CODGUARD_PLUGIN_BASENAME', plugin_basename(__FILE__));
@@ -49,12 +50,13 @@ $codguard_update_checker->setBranch('main');
 /**
  * Check if WooCommerce is active
  */
-function codguard_is_woocommerce_active() {
+function codguard_is_woocommerce_active()
+{
     // Check for single site
     if (in_array('woocommerce/woocommerce.php', apply_filters('active_plugins', get_option('active_plugins', array())))) {
         return true;
     }
-    
+
     // Check for multisite
     if (is_multisite()) {
         $plugins = get_site_option('active_sitewide_plugins');
@@ -62,7 +64,7 @@ function codguard_is_woocommerce_active() {
             return true;
         }
     }
-    
+
     // Alternative check: see if WooCommerce class exists
     return class_exists('WooCommerce');
 }
@@ -70,7 +72,8 @@ function codguard_is_woocommerce_active() {
 /**
  * Display admin notice if WooCommerce is not active
  */
-function codguard_woocommerce_missing_notice() {
+function codguard_woocommerce_missing_notice()
+{
     ?>
     <div class="notice notice-error">
         <p><?php esc_html_e('CodGuard for WooCommerce requires WooCommerce to be installed and active.', 'codguard'); ?></p>
@@ -81,7 +84,8 @@ function codguard_woocommerce_missing_notice() {
 /**
  * Initialize the plugin
  */
-function codguard_init() {
+function codguard_init()
+{
     // Check if WooCommerce is active
     if (!codguard_is_woocommerce_active()) {
         add_action('admin_notices', 'codguard_woocommerce_missing_notice');
@@ -119,7 +123,8 @@ add_action('plugins_loaded', 'codguard_init');
 /**
  * Plugin activation hook
  */
-function codguard_activate() {
+function codguard_activate()
+{
     // Check if WooCommerce is active
     if (!codguard_is_woocommerce_active()) {
         deactivate_plugins(plugin_basename(__FILE__));
@@ -140,7 +145,8 @@ register_activation_hook(__FILE__, 'codguard_activate');
 /**
  * Plugin deactivation hook
  */
-function codguard_deactivate() {
+function codguard_deactivate()
+{
     // Clear scheduled bundled send events
     wp_clear_scheduled_hook('codguard_send_bundled_orders');
 
@@ -161,7 +167,8 @@ register_deactivation_hook(__FILE__, 'codguard_deactivate');
 /**
  * Clean up old sync data after upgrade to v2.2.0
  */
-function codguard_upgrade_cleanup() {
+function codguard_upgrade_cleanup()
+{
     $cleanup_done = get_option('codguard_v220_cleanup', false);
 
     if ($cleanup_done) {
@@ -199,7 +206,7 @@ function codguard_upgrade_cleanup() {
 /**
  * Declare HPOS (High-Performance Order Storage) compatibility
  */
-add_action('before_woocommerce_init', function() {
+add_action('before_woocommerce_init', function () {
     if (class_exists('\Automattic\WooCommerce\Utilities\FeaturesUtil')) {
         \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility('custom_order_tables', __FILE__, true);
     }
@@ -208,7 +215,8 @@ add_action('before_woocommerce_init', function() {
 /**
  * Initialize customer rating check validator
  */
-function codguard_init_rating_check() {
+function codguard_init_rating_check()
+{
     // Initialize checkout validator (validates during checkout process)
     if (class_exists('CodGuard_Checkout_Validator')) {
         new CodGuard_Checkout_Validator();
@@ -219,7 +227,8 @@ add_action('init', 'codguard_init_rating_check', 5);
 /**
  * Register custom order statuses with WordPress
  */
-function codguard_register_custom_order_statuses() {
+function codguard_register_custom_order_statuses()
+{
     $custom_statuses = get_option('codguard_custom_statuses', array());
 
     if (empty($custom_statuses)) {
@@ -248,7 +257,8 @@ function codguard_register_custom_order_statuses() {
  * @param array $order_statuses Existing order statuses
  * @return array Modified order statuses
  */
-function codguard_add_custom_order_statuses($order_statuses) {
+function codguard_add_custom_order_statuses($order_statuses)
+{
     $custom_statuses = get_option('codguard_custom_statuses', array());
 
     if (empty($custom_statuses)) {
@@ -265,7 +275,8 @@ function codguard_add_custom_order_statuses($order_statuses) {
 /**
  * Add action links to plugin page
  */
-function codguard_plugin_action_links($links) {
+function codguard_plugin_action_links($links)
+{
     $settings_link = '<a href="' . esc_url(admin_url('admin.php?page=codguard-settings')) . '">' . esc_html__('Settings', 'codguard') . '</a>';
     array_unshift($links, $settings_link);
     return $links;

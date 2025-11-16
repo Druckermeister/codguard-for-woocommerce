@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Admin Settings Class
  * Handles the admin interface for CodGuard settings
@@ -10,12 +11,13 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class CodGuard_Admin_Settings {
-
+class CodGuard_Admin_Settings
+{
     /**
      * Initialize admin settings
      */
-    public static function init() {
+    public static function init()
+    {
         add_action('admin_menu', array(__CLASS__, 'add_admin_menu'), 99);
         add_action('admin_post_codguard_save_settings', array(__CLASS__, 'save_settings'));
         add_action('admin_notices', array(__CLASS__, 'admin_notices'));
@@ -26,7 +28,8 @@ class CodGuard_Admin_Settings {
     /**
      * Add admin menu under WooCommerce
      */
-    public static function add_admin_menu() {
+    public static function add_admin_menu()
+    {
         add_submenu_page(
             'woocommerce',
             __('CodGuard Settings', 'codguard'),
@@ -42,7 +45,8 @@ class CodGuard_Admin_Settings {
      *
      * @param string $hook Current admin page hook
      */
-    public static function enqueue_scripts($hook) {
+    public static function enqueue_scripts($hook)
+    {
         // Only load on our settings page
         if ('woocommerce_page_codguard-settings' !== $hook) {
             return;
@@ -91,7 +95,8 @@ class CodGuard_Admin_Settings {
     /**
      * Render settings page
      */
-    public static function render_settings_page() {
+    public static function render_settings_page()
+    {
         // Check user capabilities
         if (!current_user_can('manage_woocommerce')) {
             wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'codguard'));
@@ -107,7 +112,8 @@ class CodGuard_Admin_Settings {
     /**
      * Save settings
      */
-    public static function save_settings() {
+    public static function save_settings()
+    {
         // Verify nonce
         if (!isset($_POST['codguard_nonce']) || !wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['codguard_nonce'])), 'codguard_settings_save')) {
             wp_die(esc_html__('Security check failed.', 'codguard'));
@@ -137,7 +143,7 @@ class CodGuard_Admin_Settings {
         if ($saved) {
             // Success message
             set_transient('codguard_settings_saved', true, 45);
-            
+
             // Log the save action
             codguard_log('Settings saved successfully.');
 
@@ -153,7 +159,8 @@ class CodGuard_Admin_Settings {
     /**
      * Display admin notices
      */
-    public static function admin_notices() {
+    public static function admin_notices()
+    {
         // Only show on our settings page
         $screen = get_current_screen();
         if ($screen->id !== 'woocommerce_page_codguard-settings') {
@@ -195,7 +202,8 @@ class CodGuard_Admin_Settings {
     /**
      * AJAX handler to create custom order status
      */
-    public static function ajax_create_order_status() {
+    public static function ajax_create_order_status()
+    {
         // Verify nonce
         if (!check_ajax_referer('codguard_admin', 'nonce', false)) {
             wp_send_json_error(array(
@@ -227,7 +235,7 @@ class CodGuard_Admin_Settings {
 
         // Create slug from name
         $status_slug = 'wc-' . sanitize_title($status_name);
-        
+
         // Remove wc- prefix for storage (WooCommerce adds it)
         $status_slug_clean = str_replace('wc-', '', $status_slug);
 

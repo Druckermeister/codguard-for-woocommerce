@@ -104,10 +104,10 @@
     <div id="codguard-sync-message" style="display: none;"></div>
 
     <!-- Sync History (Optional) -->
-    <?php 
+    <?php
     $sync_history = get_option('codguard_sync_history', array());
     if (!empty($sync_history)) :
-    ?>
+        ?>
     <div class="codguard-sync-history">
         <h3><?php esc_html_e('Recent Sync History', 'codguard'); ?></h3>
         <table>

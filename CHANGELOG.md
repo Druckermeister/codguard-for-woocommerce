@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.5] - 2025-11-16
+
+### Changed
+- **Code Quality Improvements**: Applied PSR-12 coding standards
+  - Automatic formatting fixes using PHP CodeSniffer (PHPCBF)
+  - Improved code readability and consistency
+  - Fixed opening brace placements for functions and closures
+  - Removed trailing whitespace
+  - Added proper spacing between code blocks
+  - No functional changes - purely formatting improvements
+
+### Technical Details
+- 104 automatic PSR-12 fixes across 9 PHP files
+- All changes verified to maintain backward compatibility
+- Code quality improvements to facilitate future maintenance
+
+---
+
 ## [2.2.4] - 2025-11-15
 
 ### Fixed

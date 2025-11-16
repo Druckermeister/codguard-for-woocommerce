@@ -1,7 +1,8 @@
 <?php
+
 /**
  * CodGuard Checkout Validator - Alternative Approach
- * 
+ *
  * This uses WooCommerce checkout hooks instead of AJAX modal
  * Similar to UVB connector approach
  */
@@ -11,25 +12,27 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-class CodGuard_Checkout_Validator {
-
+class CodGuard_Checkout_Validator
+{
     private static $rating_checked = false;
 
-    public function __construct() {
+    public function __construct()
+    {
         // Check rating before checkout processes
         add_action('woocommerce_after_checkout_validation', array($this, 'validate_cod_payment'), 10, 2);
-        
+
         // Alternative: Check on checkout process
         add_action('woocommerce_checkout_process', array($this, 'check_cod_rating'));
     }
-    
+
     /**
      * Validate COD payment on checkout
      */
-    public function validate_cod_payment($data, $errors) {
+    public function validate_cod_payment($data, $errors)
+    {
         $this->check_cod_rating();
     }
-    
+
     /**
      * Check COD rating during checkout process
      *
@@ -37,7 +40,8 @@ class CodGuard_Checkout_Validator {
      * WooCommerce verifies 'woocommerce-process-checkout-nonce' in WC_Checkout::process_checkout()
      * before calling woocommerce_checkout_process and woocommerce_after_checkout_validation hooks.
      */
-    public function check_cod_rating() {
+    public function check_cod_rating()
+    {
         // Already checked in this request
         if (self::$rating_checked) {
             codguard_log('Rating already checked in this request, skipping.', 'debug');
@@ -103,17 +107,18 @@ class CodGuard_Checkout_Validator {
             codguard_log(sprintf('Rating %.2f meets tolerance %.2f - allowing COD payment', $rating, $tolerance), 'info');
         }
     }
-    
+
     /**
      * Get customer rating from API
      */
-    private function get_customer_rating($email) {
+    private function get_customer_rating($email)
+    {
         $shop_id = codguard_get_shop_id();
-        
+
         if (empty($shop_id)) {
             return null;
         }
-        
+
         $api_keys = codguard_get_api_keys();
 
         // Validate API keys exist
@@ -147,7 +152,7 @@ class CodGuard_Checkout_Validator {
             'timeout' => 10,
             'headers' => $headers
         ));
-        
+
         // Handle errors
         if (is_wp_error($response)) {
             if (function_exists('wc_get_logger')) {
@@ -156,7 +161,7 @@ class CodGuard_Checkout_Validator {
             }
             return null; // Fail open
         }
-        
+
         $status_code = wp_remote_retrieve_response_code($response);
         $body = wp_remote_retrieve_body($response);
         $response_headers = wp_remote_retrieve_headers($response);
@@ -169,24 +174,24 @@ class CodGuard_Checkout_Validator {
                 $logger->debug('Response Headers: ' . print_r($response_headers, true), array('source' => 'codguard'));
             }
         }
-        
+
         // 404 = new customer, allow
         if ($status_code === 404) {
             return 1.0;
         }
-        
+
         // Other non-200 status, fail open
         if ($status_code !== 200) {
             return null;
         }
-        
+
         // Parse JSON
         $data = json_decode($body, true);
-        
+
         if (!isset($data['rating'])) {
             return null;
         }
-        
+
         return (float) $data['rating'];
     }
 }

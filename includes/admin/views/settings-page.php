@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Admin Settings Page Template
  * CodGuard settings configuration

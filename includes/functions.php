@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Helper Functions
  * Global helper functions for the CodGuard plugin
@@ -14,7 +15,8 @@ if (!defined('ABSPATH')) {
  *
  * @return array Settings array
  */
-function codguard_get_settings() {
+function codguard_get_settings()
+{
     return CodGuard_Settings_Manager::get_settings();
 }
 
@@ -24,7 +26,8 @@ function codguard_get_settings() {
  * @param array $new_settings New settings to save
  * @return bool True on success, false on failure
  */
-function codguard_update_settings($new_settings) {
+function codguard_update_settings($new_settings)
+{
     return CodGuard_Settings_Manager::update_settings($new_settings);
 }
 
@@ -33,7 +36,8 @@ function codguard_update_settings($new_settings) {
  *
  * @return string Shop ID
  */
-function codguard_get_shop_id() {
+function codguard_get_shop_id()
+{
     return CodGuard_Settings_Manager::get_shop_id();
 }
 
@@ -42,7 +46,8 @@ function codguard_get_shop_id() {
  *
  * @return array Array with 'public' and 'private' keys
  */
-function codguard_get_api_keys() {
+function codguard_get_api_keys()
+{
     return CodGuard_Settings_Manager::get_api_keys();
 }
 
@@ -51,7 +56,8 @@ function codguard_get_api_keys() {
  *
  * @return int Rating tolerance (0-100)
  */
-function codguard_get_tolerance() {
+function codguard_get_tolerance()
+{
     return CodGuard_Settings_Manager::get_tolerance();
 }
 
@@ -60,7 +66,8 @@ function codguard_get_tolerance() {
  *
  * @return array Array of payment gateway IDs
  */
-function codguard_get_cod_methods() {
+function codguard_get_cod_methods()
+{
     return CodGuard_Settings_Manager::get_cod_methods();
 }
 
@@ -69,7 +76,8 @@ function codguard_get_cod_methods() {
  *
  * @return array Array with 'good' and 'refused' status slugs
  */
-function codguard_get_status_mappings() {
+function codguard_get_status_mappings()
+{
     return CodGuard_Settings_Manager::get_status_mappings();
 }
 
@@ -78,7 +86,8 @@ function codguard_get_status_mappings() {
  *
  * @return string Rejection message
  */
-function codguard_get_rejection_message() {
+function codguard_get_rejection_message()
+{
     return CodGuard_Settings_Manager::get_rejection_message();
 }
 
@@ -87,7 +96,8 @@ function codguard_get_rejection_message() {
  *
  * @return bool True if enabled, false otherwise
  */
-function codguard_is_enabled() {
+function codguard_is_enabled()
+{
     return CodGuard_Settings_Manager::is_enabled();
 }
 
@@ -97,7 +107,8 @@ function codguard_is_enabled() {
  * @param string $message Message to log
  * @param string $level Log level (info, warning, error, debug)
  */
-function codguard_log($message, $level = 'info') {
+function codguard_log($message, $level = 'info')
+{
     if (function_exists('wc_get_logger')) {
         $logger = wc_get_logger();
         $logger->log($level, $message, array('source' => 'codguard'));
@@ -109,7 +120,8 @@ function codguard_log($message, $level = 'info') {
  *
  * @return array Array of order statuses
  */
-function codguard_get_order_statuses() {
+function codguard_get_order_statuses()
+{
     if (function_exists('wc_get_order_statuses')) {
         return wc_get_order_statuses();
     }
@@ -121,7 +133,8 @@ function codguard_get_order_statuses() {
  *
  * @return array Array of payment gateways
  */
-function codguard_get_payment_gateways() {
+function codguard_get_payment_gateways()
+{
     $gateways = array();
 
     if (function_exists('WC')) {
@@ -142,7 +155,8 @@ function codguard_get_payment_gateways() {
  * @param string $payment_method Payment method ID
  * @return bool True if COD method, false otherwise
  */
-function codguard_is_cod_method($payment_method) {
+function codguard_is_cod_method($payment_method)
+{
     $cod_methods = codguard_get_cod_methods();
     return in_array($payment_method, $cod_methods);
 }
