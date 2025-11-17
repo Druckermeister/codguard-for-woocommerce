@@ -102,6 +102,10 @@ class CodGuard_Checkout_Validator
         if ($rating < $tolerance) {
             // Block COD
             codguard_log(sprintf('Rating %.2f is below tolerance %.2f - BLOCKING COD payment', $rating, $tolerance), 'warning');
+
+            // Increment block counter
+            $this->increment_block_counter($email, $rating);
+
             wc_add_notice($settings['rejection_message'], 'error');
         } else {
             codguard_log(sprintf('Rating %.2f meets tolerance %.2f - allowing COD payment', $rating, $tolerance), 'info');
@@ -193,5 +197,33 @@ class CodGuard_Checkout_Validator
         }
 
         return (float) $data['rating'];
+    }
+
+    /**
+     * Increment block counter
+     *
+     * @param string $email Customer email
+     * @param float $rating Customer rating
+     */
+    private function increment_block_counter($email, $rating)
+    {
+        $block_events = get_option('codguard_block_events', array());
+
+        // Add new block event
+        $block_events[] = array(
+            'timestamp' => current_time('timestamp'),
+            'email'     => $email,
+            'rating'    => $rating,
+        );
+
+        // Keep only last 90 days of data (optional cleanup)
+        $ninety_days_ago = current_time('timestamp') - (90 * DAY_IN_SECONDS);
+        $block_events = array_filter($block_events, function ($event) use ($ninety_days_ago) {
+            return $event['timestamp'] > $ninety_days_ago;
+        });
+
+        update_option('codguard_block_events', $block_events);
+
+        codguard_log(sprintf('Block event recorded for %s (rating: %.2f). Total events: %d', $email, $rating, count($block_events)), 'debug');
     }
 }

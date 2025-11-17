@@ -158,7 +158,7 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
                                 <?php endforeach; ?>
                             </select>
                             <p class="description">
-                                <?php esc_html_e('Orders with this status will be marked as successful (outcome: 1) when reported to CodGuard.', 'codguard'); ?>
+                                <?php esc_html_e('Orders with this status will be allowed for future COD payments.', 'codguard'); ?>
                             </p>
                         </td>
                     </tr>
@@ -179,12 +179,33 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
                                 <?php endforeach; ?>
                             </select>
                             <p class="description">
-                                <?php esc_html_e('Orders with this status will be marked as refused (outcome: -1) when reported to CodGuard.', 'codguard'); ?>
+                                <?php esc_html_e('Orders with this status will be blocked for future COD payments.', 'codguard'); ?>
                             </p>
                         </td>
                     </tr>
                 </tbody>
             </table>
+
+            <!-- Create Custom Status -->
+            <div style="margin-top: 20px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+                <h3 style="margin-top: 0;"><?php esc_html_e('Create Custom Order Status', 'codguard'); ?></h3>
+                <p class="description">
+                    <?php esc_html_e('Need a custom order status? Create one here and it will be immediately available in the dropdowns above.', 'codguard'); ?>
+                </p>
+                <div style="margin-top: 15px;">
+                    <input
+                        type="text"
+                        id="custom_status_name"
+                        placeholder="<?php esc_attr_e('Enter status name (e.g., Pending Payment)', 'codguard'); ?>"
+                        class="regular-text"
+                        maxlength="50"
+                    >
+                    <button type="button" id="codguard-create-status" class="button button-secondary">
+                        <?php esc_html_e('Create Status', 'codguard'); ?>
+                    </button>
+                </div>
+                <div id="codguard-status-message" style="display: none; margin-top: 10px;"></div>
+            </div>
         </div>
 
         <!-- Section 3: Payment Method Configuration -->
@@ -281,27 +302,6 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
                             </p>
                         </td>
                     </tr>
-
-                    <!-- Notification Email -->
-                    <tr>
-                        <th scope="row">
-                            <label for="notification_email">
-                                <?php esc_html_e('Notification Email', 'codguard'); ?>
-                            </label>
-                        </th>
-                        <td>
-                            <input 
-                                type="email" 
-                                name="notification_email" 
-                                id="notification_email" 
-                                value="<?php echo esc_attr($settings['notification_email']); ?>" 
-                                class="regular-text"
-                            >
-                            <p class="description">
-                                <?php esc_html_e('Email address for API error notifications and alerts. Default: info@codguard.com', 'codguard'); ?>
-                            </p>
-                        </td>
-                    </tr>
                 </tbody>
             </table>
         </div>
@@ -311,5 +311,105 @@ $is_enabled = CodGuard_Settings_Manager::is_enabled();
             <?php submit_button(esc_html__('Save Settings', 'codguard'), 'primary', 'submit', false); ?>
         </p>
     </form>
+
+    <!-- COD Block Statistics Section -->
+    <div class="codguard-settings-section" style="margin-top: 30px;">
+        <h2><?php esc_html_e('COD Block Statistics', 'codguard'); ?></h2>
+        <p class="description"><?php esc_html_e('View how many times cash-on-delivery payment was blocked due to low customer ratings.', 'codguard'); ?></p>
+
+        <?php
+        // Get block events
+        $block_events = get_option('codguard_block_events', array());
+        $current_time = current_time('timestamp');
+
+        // Calculate stats for different periods
+        $stats = array(
+            'today' => 0,
+            'week' => 0,
+            'month' => 0,
+            'all' => count($block_events),
+        );
+
+        $today_start = strtotime('today', $current_time);
+        $week_start = strtotime('-7 days', $current_time);
+        $month_start = strtotime('-30 days', $current_time);
+
+        foreach ($block_events as $event) {
+            if ($event['timestamp'] >= $today_start) {
+                $stats['today']++;
+            }
+            if ($event['timestamp'] >= $week_start) {
+                $stats['week']++;
+            }
+            if ($event['timestamp'] >= $month_start) {
+                $stats['month']++;
+            }
+        }
+        ?>
+
+        <!-- Stats Display -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 20px;">
+            <div style="background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 20px; text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: #2271b1;"><?php echo esc_html($stats['today']); ?></div>
+                <div style="margin-top: 8px; color: #666;"><?php esc_html_e('Today', 'codguard'); ?></div>
+            </div>
+
+            <div style="background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 20px; text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: #2271b1;"><?php echo esc_html($stats['week']); ?></div>
+                <div style="margin-top: 8px; color: #666;"><?php esc_html_e('Last 7 Days', 'codguard'); ?></div>
+            </div>
+
+            <div style="background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 20px; text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: #2271b1;"><?php echo esc_html($stats['month']); ?></div>
+                <div style="margin-top: 8px; color: #666;"><?php esc_html_e('Last 30 Days', 'codguard'); ?></div>
+            </div>
+
+            <div style="background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 20px; text-align: center;">
+                <div style="font-size: 32px; font-weight: bold; color: #2271b1;"><?php echo esc_html($stats['all']); ?></div>
+                <div style="margin-top: 8px; color: #666;"><?php esc_html_e('All Time', 'codguard'); ?></div>
+            </div>
+        </div>
+
+        <?php if (!empty($block_events)) : ?>
+        <!-- Recent Blocks Table -->
+        <div style="margin-top: 30px;">
+            <h3><?php esc_html_e('Recent Blocks', 'codguard'); ?></h3>
+            <table class="wp-list-table widefat fixed striped" style="margin-top: 10px;">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;"><?php esc_html_e('Date & Time', 'codguard'); ?></th>
+                        <th style="width: 50%;"><?php esc_html_e('Customer Email', 'codguard'); ?></th>
+                        <th style="width: 25%;"><?php esc_html_e('Rating', 'codguard'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    // Show last 10 events
+                    $recent_events = array_slice(array_reverse($block_events), 0, 10);
+                    foreach ($recent_events as $event) :
+                        ?>
+                    <tr>
+                        <td><?php echo esc_html(date_i18n('Y-m-d H:i:s', $event['timestamp'])); ?></td>
+                        <td><?php echo esc_html($event['email']); ?></td>
+                        <td><?php echo esc_html(number_format($event['rating'] * 100, 1) . '%'); ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+            <?php if (count($block_events) > 10) : ?>
+            <p class="description" style="margin-top: 10px;">
+                <?php
+                /* translators: %d: number of total block events */
+                printf(esc_html__('Showing 10 most recent blocks out of %d total.', 'codguard'), count($block_events));
+                ?>
+            </p>
+            <?php endif; ?>
+        </div>
+        <?php else : ?>
+        <p style="margin-top: 20px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
+            <?php esc_html_e('No COD blocks recorded yet. Statistics will appear here when customers are blocked from using cash-on-delivery payment.', 'codguard'); ?>
+        </p>
+        <?php endif; ?>
+    </div>
 
 </div>
