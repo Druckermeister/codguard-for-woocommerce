@@ -21,11 +21,20 @@ jobs:
 
       - name: Validate PHP syntax
         run: |
-          find . -type f -name "*.php" ! -path "./vendor/*" -exec php -l {} \; | grep -v "No syntax errors"
-          if [ $? -eq 0 ]; then
+          echo "Checking PHP syntax..."
+          ERROR_COUNT=0
+          for file in $(find . -type f -name "*.php" ! -path "./vendor/*"); do
+            if ! php -l "$file" > /dev/null 2>&1; then
+              echo "✗ Syntax error in: $file"
+              php -l "$file"
+              ERROR_COUNT=$((ERROR_COUNT + 1))
+            fi
+          done
+
+          if [ $ERROR_COUNT -eq 0 ]; then
             echo "✓ All PHP files are valid"
           else
-            echo "✗ PHP syntax errors found"
+            echo "✗ Found $ERROR_COUNT PHP syntax errors"
             exit 1
           fi
 
