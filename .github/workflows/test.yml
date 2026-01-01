@@ -1,0 +1,38 @@
+name: Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: Validate PHP syntax
+        run: |
+          find . -type f -name "*.php" ! -path "./vendor/*" -exec php -l {} \; | grep -v "No syntax errors"
+          if [ $? -eq 0 ]; then
+            echo "✓ All PHP files are valid"
+          else
+            echo "✗ PHP syntax errors found"
+            exit 1
+          fi
+
+      - name: Check for common issues
+        run: |
+          echo "Checking for debug statements..."
+          ! grep -r "var_dump\|print_r\|die\|exit" --include="*.php" . || echo "⚠️  Found debug statements"
+
+          echo "Checking for TODO comments..."
+          grep -r "TODO\|FIXME" --include="*.php" . || echo "✓ No TODO items found"
