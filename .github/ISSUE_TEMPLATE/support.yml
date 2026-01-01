@@ -1,0 +1,59 @@
+name: Support Question
+description: Get help with installation or configuration
+title: "[Support] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Need help getting CodGuard working? We're here to help!
+
+  - type: textarea
+    id: question
+    attributes:
+      label: What do you need help with?
+      description: Describe your question or issue
+      placeholder: "I'm not sure how to configure the API key..."
+    validations:
+      required: true
+
+  - type: input
+    id: wordpress-version
+    attributes:
+      label: WordPress Version
+      placeholder: "6.4.2"
+    validations:
+      required: true
+
+  - type: input
+    id: woocommerce-version
+    attributes:
+      label: WooCommerce Version
+      placeholder: "8.5.1"
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: CodGuard Plugin Version
+      placeholder: "2.9.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: What steps have you already taken?
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Screenshots of your configuration or the issue
+      placeholder: Drag and drop images here
+    validations:
+      required: false

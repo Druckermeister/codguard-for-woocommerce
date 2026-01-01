@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: CodGuard Website
+    url: https://www.codguard.com/woocommerce-integration/
+    about: Visit the CodGuard website for documentation
+  - name: Email Support
+    url: mailto:support@codguard.com
+    about: Email us for urgent issues

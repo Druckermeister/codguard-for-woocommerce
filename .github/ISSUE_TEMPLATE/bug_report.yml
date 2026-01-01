@@ -1,0 +1,101 @@
+name: Bug Report
+description: Report a problem with the CodGuard WooCommerce plugin
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting this issue! Please fill out the information below so we can help you quickly.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's the problem?
+      description: Describe what's not working
+      placeholder: "Orders are not being blocked even when they should be..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Install the plugin
+        2. Configure API key
+        3. Place a test order
+        4. Order goes through but should be blocked
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen instead?
+      description: What did you expect?
+      placeholder: "Order should be blocked and customer should see rejection message..."
+    validations:
+      required: false
+
+  - type: input
+    id: wordpress-version
+    attributes:
+      label: WordPress Version
+      placeholder: "6.4.2"
+    validations:
+      required: true
+
+  - type: input
+    id: woocommerce-version
+    attributes:
+      label: WooCommerce Version
+      placeholder: "8.5.1"
+    validations:
+      required: true
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: CodGuard Plugin Version
+      placeholder: "2.9.0"
+    validations:
+      required: true
+
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP Version
+      placeholder: "8.1"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Messages or Logs
+      description: Copy any error messages from WordPress debug log or browser console
+      placeholder: "Paste error messages here..."
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Add screenshots if helpful
+      placeholder: Drag and drop images here
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have entered a valid CodGuard API key
+        - label: I have tested with a risky order (negative rating)
+        - label: I have checked WordPress debug logs
+        - label: I am using the latest version of the plugin
