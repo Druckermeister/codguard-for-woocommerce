@@ -1,0 +1,70 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Create release zip
+        run: |
+          zip -r codguard-${{ steps.get_version.outputs.VERSION }}.zip . \
+            -x "*.git*" \
+            -x "*.env" \
+            -x "CREDENTIALS.md" \
+            -x "GITHUB-RENAME-INSTRUCTIONS.md" \
+            -x "*.backup" \
+            -x "node_modules/*" \
+            -x ".claude/*" \
+            -x "vendor/squizlabs/*" \
+            -x "vendor/bin/*" \
+            -x ".github/*"
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          # Extract the changelog section for this version
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+
+          # Create release notes file
+          echo "## What's New in v$VERSION" > release_notes.md
+          echo "" >> release_notes.md
+
+          # Try to extract from CHANGELOG.md
+          if [ -f CHANGELOG.md ]; then
+            # Extract the section between this version and the next version/separator
+            sed -n "/## \[$VERSION\]/,/^## \[/p" CHANGELOG.md | sed '$d' >> release_notes.md || true
+          fi
+
+          # Add installation instructions
+          echo "" >> release_notes.md
+          echo "## Installation" >> release_notes.md
+          echo "1. Download codguard-$VERSION.zip" >> release_notes.md
+          echo "2. Go to WordPress Admin > Plugins > Add New > Upload Plugin" >> release_notes.md
+          echo "3. Upload the zip file and activate" >> release_notes.md
+          echo "4. Configure under WooCommerce > Settings > CodGuard" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## Upgrade" >> release_notes.md
+          echo "If you have auto-updates enabled from GitHub, the plugin will update automatically." >> release_notes.md
+          echo "Otherwise, deactivate the old version, delete it, and install this version." >> release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: codguard-${{ steps.get_version.outputs.VERSION }}.zip
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
