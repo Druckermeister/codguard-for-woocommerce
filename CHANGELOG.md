@@ -1,6 +1,129 @@
-# Changelog - CodGuard for WooCommerce
+# Changelog - CodGuard
 
-All notable changes to this project will be documented in this file.
+All notable changes to CodGuard integrations will be documented in this file.
+
+---
+
+# WooCommerce Integration
+
+## [2.2.7] - 2026-01-02
+
+### Added
+- **Feedback Reporting System**: Real-time analytics feedback to CodGuard API
+  - Automatically sends feedback after each reputation check
+  - Reports both blocked and allowed COD payment attempts
+  - Includes customer email, reputation score, threshold, and action taken
+  - Enables dashboard analytics and aggregated statistics
+  - Non-blocking: failures don't affect checkout process
+  - Uses existing API key authentication
+
+---
+
+# OpenCart Integration
+
+## [2.3.0] - 2025-11-26
+
+### Added
+- **Automated Order Sync System**: Complete implementation of order upload to CodGuard API
+  - Hourly cron job that sends completed and denied orders to CodGuard
+  - Orders are queued when marked as Complete (status 5) or Denied (status 8)
+  - 1-hour bundling delay to group multiple orders together
+  - Sends up to 100 orders per batch to CodGuard API
+  - Created new cron controller: `extension/codguard/catalog/controller/cron/codguard.php`
+  - Registered cron job in `oc_cron` table (runs every hour)
+
+- **Enhanced Logging System**: Comprehensive troubleshooting logs
+  - `[ORDER-SYNC]` log tags for order queueing and sending
+  - `[CRON]` log tags for cron job execution
+  - Detailed API request/response logging
+  - Order data preparation logging
+  - Queue status tracking
+  - Success/failure notifications
+
+- **Admin Order Status Event Support**:
+  - Added `eventOrderStatusChange()` method to admin fraud controller
+  - Registered admin event: `admin/model/sale/order/addHistory/after`
+  - Loads catalog model to queue orders from admin context
+  - Includes debug logging for troubleshooting
+
+- **One-Time Migration Script**: `queue_existing_orders.php`
+  - Finds all existing orders with Complete or Denied status
+  - Queues them for upload to CodGuard API
+  - Can be run manually to sync historical orders
+  - Provides detailed progress output
+
+### Changed
+- **Order Upload Model**: Enhanced `catalog/model/fraud/codguard.php`
+  - Added `queueOrder()` method with comprehensive logging
+  - Added `sendBundledOrders()` method for batch uploads
+  - Added `sendOrdersToApi()` method with detailed logging
+  - Added `scheduleBundledSend()` for automatic scheduling
+  - Added `prepareOrderData()` for API payload formatting
+  - Added `cleanOldRecords()` for maintenance
+
+### Fixed
+- **Order Upload Issue**: Orders now properly queue and upload to CodGuard
+  - Fixed: Completed and denied orders weren't being uploaded
+  - Root cause: No cron job existed to send queued orders
+  - Solution: Created automated hourly cron system with logging
+
+- **Admin Panel Integration**: Workaround for OpenCart 4.x event system
+  - Issue: Admin panel doesn't trigger standard order history events
+  - Workaround: Created manual script to queue existing orders
+  - Future orders can be queued via script or direct API
+
+### Technical Details
+- **Files Created:**
+  - `www/extension/codguard/catalog/controller/cron/codguard.php` - Cron controller
+  - `www/queue_existing_orders.php` - Migration script
+  - `www/codguard_rollback.sh` - Emergency rollback script
+  - `www/CODGUARD_TROUBLESHOOTING.md` - Troubleshooting guide
+
+- **Files Modified:**
+  - `www/extension/codguard/catalog/model/fraud/codguard.php` - Enhanced logging
+  - `www/extension/codguard/admin/controller/fraud/codguard.php` - Added event handler
+
+- **Database Changes:**
+  - Added cron job to `oc_cron` table (ID: 4, code: `codguard_order_sync`)
+  - Added admin event to `oc_event` table (ID: 167)
+
+- **Backups Created:**
+  - `www/extension/codguard/catalog/model/fraud/codguard.php.backup_20251126_101312`
+  - `www/extension/codguard/admin/controller/fraud/codguard.php.backup_*`
+
+### Configuration
+- **Order Statuses:**
+  - Good Status (Complete): 5
+  - Refused Status (Denied): 8
+
+- **Cron Schedule:**
+  - Frequency: Every hour
+  - Bundling delay: 1 hour after status change
+  - Batch size: Up to 100 orders per run
+
+### Testing Results
+- ✅ Successfully tested order queueing
+- ✅ Successfully tested API upload (HTTP 200 response)
+- ✅ Confirmed logging system working correctly
+- ✅ Verified 7 historical orders queued and ready to send
+
+### Known Issues
+- **Admin Event Not Triggering**: OpenCart 4.x admin panel doesn't trigger `admin/model/sale/order/addHistory/after` event
+  - Workaround: Use `queue_existing_orders.php` script to manually queue orders
+  - Impact: Orders changed through admin panel need manual queueing
+  - Future: May require different event hook or custom implementation
+
+### Migration Guide
+For existing installations, run the migration script to queue historical orders:
+```bash
+ssh -p 10222 opencartco@opencart.codguard.com.uvds288.active24.cz
+cd www
+php queue_existing_orders.php
+```
+
+---
+
+# WooCommerce Integration
 
 ## [2.2.5] - 2025-11-16
 

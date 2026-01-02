@@ -106,9 +106,15 @@ class CodGuard_Checkout_Validator
             // Increment block counter
             $this->increment_block_counter($email, $rating);
 
+            // Send feedback to API
+            $this->send_feedback($email, $rating, $tolerance, 'blocked');
+
             wc_add_notice($settings['rejection_message'], 'error');
         } else {
             codguard_log(sprintf('Rating %.2f meets tolerance %.2f - allowing COD payment', $rating, $tolerance), 'info');
+
+            // Send feedback to API
+            $this->send_feedback($email, $rating, $tolerance, 'allowed');
         }
     }
 
@@ -225,5 +231,68 @@ class CodGuard_Checkout_Validator
         update_option('codguard_block_events', $block_events);
 
         codguard_log(sprintf('Block event recorded for %s (rating: %.2f). Total events: %d', $email, $rating, count($block_events)), 'debug');
+    }
+
+    /**
+     * Send feedback to API
+     *
+     * @param string $email Customer email
+     * @param float $rating Customer rating
+     * @param float $threshold Rating threshold
+     * @param string $action Action taken (blocked|allowed)
+     */
+    private function send_feedback($email, $rating, $threshold, $action)
+    {
+        $shop_id = codguard_get_shop_id();
+
+        if (empty($shop_id)) {
+            codguard_log('Cannot send feedback: Shop ID is empty', 'warning');
+            return;
+        }
+
+        $api_keys = codguard_get_api_keys();
+
+        if (empty($api_keys['public'])) {
+            codguard_log('Cannot send feedback: API key is empty', 'warning');
+            return;
+        }
+
+        $url = 'https://api.codguard.com/api/feedback';
+
+        $body = array(
+            'eshop_id'   => (int) $shop_id,
+            'email'      => $email,
+            'reputation' => (float) $rating,
+            'threshold'  => (float) $threshold,
+            'action'     => $action,
+        );
+
+        $headers = array(
+            'Content-Type' => 'application/json',
+            'X-API-KEY'    => $api_keys['public'],
+        );
+
+        codguard_log(sprintf('Sending feedback to API: %s (action: %s)', $url, $action), 'debug');
+
+        $response = wp_remote_post($url, array(
+            'timeout' => 5,
+            'headers' => $headers,
+            'body'    => wp_json_encode($body),
+        ));
+
+        // Handle errors
+        if (is_wp_error($response)) {
+            codguard_log(sprintf('Feedback API Error: %s', $response->get_error_message()), 'warning');
+            return;
+        }
+
+        $status_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+
+        if ($status_code === 200) {
+            codguard_log(sprintf('Feedback sent successfully: %s', $response_body), 'debug');
+        } else {
+            codguard_log(sprintf('Feedback API returned status %d: %s', $status_code, $response_body), 'warning');
+        }
     }
 }
