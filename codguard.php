@@ -4,7 +4,7 @@
  * Plugin Name: CodGuard for WooCommerce
  * Plugin URI: https://codguard.com
  * Description: Integrates with the CodGuard API to manage cash-on-delivery payment options based on customer ratings and synchronize order data.
- * Version: 2.2.6
+ * Version: 2.2.7
  * Author: CodGuard
  * Author URI: https://codguard.com
  * Text Domain: codguard
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('CODGUARD_VERSION', '2.2.6');
+define('CODGUARD_VERSION', '2.2.7');
 define('CODGUARD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CODGUARD_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('CODGUARD_PLUGIN_BASENAME', plugin_basename(__FILE__));
